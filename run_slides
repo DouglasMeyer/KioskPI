@@ -1,0 +1,109 @@
+#!/bin/bash
+
+#FIXME: what if no internet?
+
+export XAUTHORITY=/tmp/Xauthority
+export DISPLAY=:0
+
+
+browser_id=
+current_slide=
+
+run_slides(){
+  file=/boot/slides/$1
+  if [[ -f "${file}" ]] ; then
+    current_slide=$1
+  else
+    echo "No file:${file}"
+    return
+  fi
+
+  run_webpage $(cat ${file})
+}
+
+#launch_browser(){
+#  url=$1
+#  chromium-browser --kiosk --app=${url} &>/dev/null &
+#  browser_id=
+#  count=0
+#  while [[ ( -z ${browser_id} ) || ( ${count} -gt 5 ) ]] ; do
+#    sleep 1
+#    browser_id=$(xdotool search --onlyvisible --class chromium | head -1)
+#    count=$(( count + 1 ))
+#  done
+#}
+launch_browser(){
+  url=$1
+  epiphany --application-mode --profile=/tmp/epiphany ${url} &>/dev/null &
+  browser_id=
+  count=0
+  while [[ ( -z ${browser_id} ) || ( ${count} -gt 5 ) ]] ; do
+    sleep 1
+    browser_id=$(xdotool search --onlyvisible --class epiphany | head -1)
+    count=$(( count + 1 ))
+  done
+}
+
+run_webpage(){
+  url=$1
+  [[ "${browser_id}" ]] && kill $(xdotool getwindowpid ${browser_id})
+
+  launch_browser ${url}
+  xdotool windowactivate ${browser_id}
+  key F11
+}
+
+key(){
+  keys=$@
+  xdotool key $keys
+}
+
+
+
+startx ~/scripts/run_onepageos &> /dev/null &
+sleep 1
+run_slides 0
+
+while read line ; do
+  key=$(expr "$line" : '.*key pressed: \(.\+\) (.*)')
+  if [[ $key ]] ; then
+    case "${key}" in
+      [0-9])
+        echo "Slides Number: ${key}"
+        run_slides $key
+        ;;
+      "channel up")
+        if [[ -f "/boot/slides/$(( current_slide + 1 ))" ]] ; then
+          run_slides $(( $current_slide + 1 ))
+        else
+          run_slides 0
+        fi
+        ;;
+      "channel down")
+        if [[ -f "/boot/slides/$(( current_slide - 1 ))" ]] ; then
+          run_slides $(( current_slide - 1 ))
+        else
+          run_slides $( ls /boot/slides/ | sort | tail -1 )
+        fi
+        ;;
+      "F1 (blue)")
+        run_webpage "http://www.starlinefactory.com/weddingsspecial-occasions.html" #"http://www.woodstockag.org/"
+        ;;
+      "F2 (red)")
+        run_webpage "https://docs.google.com/presentation/d/1O4yWFpsJ99OQVhH0MvLYO2vP6clhRSYEZK3O8u_YWyg/pub?start=true&loop=true&delayms=5000"
+        ;;
+      "F3 (green)")
+        ~/scripts/refresh
+        ;;
+      up)
+        key ctrl+plus
+        ;;
+      down)
+        key ctrl+minus
+        ;;
+      *)
+        echo "Some other key: \"${key}\""
+        ;;
+    esac
+  fi
+done < <(echo "as" | cec-client)

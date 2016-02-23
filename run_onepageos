@@ -1,0 +1,11 @@
+#!/bin/bash
+xset s off         # don't activate screensaver
+xset -dpms         # disable DPMS (Energy Star) features.
+xset s noblank     # don't blank the video device
+
+unclutter -idle 0.01 &
+#rm -rf /home/pi/.config/chromium/*
+#cp -R /home/pi/.config/chromium_template/* /home/pi/.config/chromium/
+mkdir /tmp/epiphany
+#x11vnc &
+matchbox-window-manager
